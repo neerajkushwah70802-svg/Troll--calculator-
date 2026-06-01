@@ -5,11 +5,11 @@ app = Flask(__name__)
 
 roast_templates = [
     "{name}, 2 plus 2 bhi nahi aata? School ja wapis",
-    "{name}, calculator bhi bol raha hai 'mujhe uninstall kar do '",
-    "{name}, tere se to alexa bhi zyada samajhdaar hai ",
-    "{name}, tu youtube pe 'how to use calculator 'search kar ",
-    "{name}, tera attendance bhi proxy se lagta hoga ",
-    "{name}, tera dimaag airplane ode pe hai kya ?",
+    "{name}, calculator bhi bol raha hai mujhe uninstall kar do",
+    "{name}, tere se to alexa bhi zyada samajhdaar hai",
+    "{name}, tu youtube pe how to use calculator search kar",
+    "{name}, tera attendance bhi proxy se lagta hoga",
+    "{name}, tera dimaag airplane mode pe hai kya?",
     ]
 
 HTML = '''
@@ -109,11 +109,22 @@ HTML = '''
             color: #ffa502;
             margin-bottom: 5px;
         }
+        .sound-btn {
+            background: #2ed573;
+            margin-bottom: 20px;
+        }
+        .sound-btn:hover {
+            background: #26c267;
+        }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <h1>Troll Calculator v7.0 💥🎉</h1>
+    
+    <button id="enableSound" class="sound-btn">🔊 Sound On Karo</button>
+    <div id="soundStatus" style="color: #2ed573; margin-bottom: 15px; display: none;">Sound Enabled ✅</div>
+    
     <form method="POST" id="calcForm">
         <div class="label">Apna naam dal bhai:</div>
         <input name="username" id="nameInput" placeholder="Naam likh" value="{{ username }}" required autocomplete="off">
@@ -135,53 +146,86 @@ HTML = '''
     </div>
     
     {% if is_troll %}
-    <audio id="trollSound" autoplay>
+    <audio id="trollSound">
         <source src="https://www.myinstants.com/media/sounds/vine-boom.mp3" type="audio/mpeg">
     </audio>
     <script>
-        // 1. BOOM Sound
-        document.getElementById('trollSound').volume = 1.0;
-        document.getElementById('trollSound').play();
+        // Sound enable check
+        let soundEnabled = sessionStorage.getItem('soundEnabled') === 'true';
         
-        // 2. Confetti Blast
-        function fireConfetti() {
-            var count = 200;
-            var defaults = { origin: { y: 0.7 } };
-            function fire(particleRatio, opts) {
-                confetti(Object.assign({}, defaults, opts, {
-                    particleCount: Math.floor(count * particleRatio)
-                }));
+        function playTrollEffects() {
+            if (!soundEnabled) return;
+            
+            // 1. BOOM Sound
+            let audio = document.getElementById('trollSound');
+            audio.volume = 1.0;
+            audio.play().catch(e => console.log('Audio play failed:', e));
+            
+            // 2. Confetti Blast
+            function fireConfetti() {
+                var count = 200;
+                var defaults = { origin: { y: 0.7 } };
+                function fire(particleRatio, opts) {
+                    confetti(Object.assign({}, defaults, opts, {
+                        particleCount: Math.floor(count * particleRatio)
+                    }));
+                }
+                fire(0.25, { spread: 26, startVelocity: 55 });
+                fire(0.2, { spread: 60 });
+                fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+                fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+                fire(0.1, { spread: 120, startVelocity: 45 });
             }
-            fire(0.25, { spread: 26, startVelocity: 55 });
-            fire(0.2, { spread: 60 });
-            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-            fire(0.1, { spread: 120, startVelocity: 45 });
+            fireConfetti();
+            setTimeout(fireConfetti, 250);
+            setTimeout(fireConfetti, 400);
+            
+            // 3. Voice Roast
+            const roastText = "{{ roast_text }}";
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(roastText);
+                utterance.lang = 'hi-IN';
+                utterance.rate = 0.9;
+                utterance.pitch = 1.2;
+                utterance.volume = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+            
+            // 4. Shake Animation
+            setTimeout(() => {
+                document.getElementById('resultBox').style.animation = 'shake 0.5s';
+            }, 100);
         }
-        fireConfetti();
-        setTimeout(fireConfetti, 250);
-        setTimeout(fireConfetti, 400);
         
-        // 3. Voice Roast - AB JO NAAM DAALA WAHI BOLEGA
-        const roastText = "{{ roast_text }}";
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(roastText);
-            utterance.lang = 'hi-IN';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.2;
-            utterance.volume = 1.0;
-            speechSynthesis.speak(utterance);
-        }
-        
-        // 4. Shake Animation
-        setTimeout(() => {
-            document.getElementById('resultBox').style.animation = 'shake 0.5s';
-        }, 100);
+        playTrollEffects();
     </script>
-    {% endif %}
     {% endif %}
     
     <script>
+        document.getElementById('enableSound').onclick = function() {
+            sessionStorage.setItem('soundEnabled', 'true');
+            document.getElementById('soundStatus').style.display = 'block';
+            this.style.display = 'none';
+            
+            // Test sound
+            let audio = new Audio('https://www.myinstants.com/media/sounds/vine-boom.mp3');
+            audio.volume = 0.3;
+            audio.play();
+            
+            // Test voice
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('Sound on ho gaya bhai');
+                utterance.lang = 'hi-IN';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        
+        if (sessionStorage.getItem('soundEnabled') === 'true') {
+            document.getElementById('enableSound').style.display = 'none';
+            document.getElementById('soundStatus').style.display = 'block';
+        }
+        
         document.getElementById('calcForm').onsubmit = function() {
             document.getElementById('loading').style.display = 'block';
             return true;
@@ -206,14 +250,13 @@ def calculator():
         exp = request.form['exp']
         username = request.form['username'].strip()
         if not username:
-            username = "Bhai"  # Agar naam khali chhod diya to
+            username = "Bhai"
         
         try:
             correct = eval(exp)
             
             if random.random() < 0.5:
                 wrong = correct + random.randint(1,25)
-                # AB JO NAAM DAALA WAHI USE HOGA
                 roast_text = random.choice(roast_templates).format(name=username)
                 result = f'''
                 <p class="calculating">Calculating... 99% complete...</p>
@@ -237,4 +280,4 @@ def calculator():
     return render_template_string(HTML, result=result, exp=exp, username=username, troll_count=troll_count, is_troll=is_troll, roast_text=roast_text)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
